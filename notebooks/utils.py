@@ -162,6 +162,7 @@ def load_runs(
             return None
         config = run.config
         config["name"] = run.name
+        config["id"] = run.id
         config["state"] = run.state
         config["total_steps"] = run.summary.get("train/train_step", 0)
         h: pd.DataFrame = run.history(
