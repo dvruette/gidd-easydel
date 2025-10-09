@@ -182,6 +182,8 @@ def train(args):
         # except Exception as e:
         #     logger.warning(f"Failed to resume from checkpoint: {e}")
         #     # args.resume_wandb_id = None
+    elif args.resume_from_checkpoint:
+        args.save_directory = args.resume_from_checkpoint
     else:
         args.save_directory = os.path.join(
             args.save_directory,
@@ -349,7 +351,7 @@ def train(args):
         # This is MANDATORY for streaming datasets. It tells the trainer how many
         # steps constitute one "epoch". Should be ~ (total_dataset_size // total_batch_size).
         per_epoch_training_steps=98_000_000,
-        max_training_steps=total_steps,
+        max_training_steps=total_steps * grad_accum_steps,
         # step_start_point=start_step,
         learning_rate=lr / hidden_size,
         optimizer=ed.EasyDeLOptimizers.ADAMW,

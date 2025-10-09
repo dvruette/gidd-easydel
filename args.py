@@ -80,6 +80,7 @@ def parse_args(
     parser.add_argument("--compile_aot", action=argparse.BooleanOptionalAction, default=False, help="Compile model ahead of time for faster training.")
     parser.add_argument("--break_on_nan", action=argparse.BooleanOptionalAction, default=True, help="Break training on NaN loss.")
     parser.add_argument("--gradient_checkpointing", type=str, default="", choices=["", "everything_saveable", "nothing_saveable", "checkpoint_dots", "checkpoint_dots_with_no_batch_dims"], help="Gradient checkpointing strategy.")
+    parser.add_argument("--resume_from_checkpoint", type=str, default=None, help="Path to a checkpoint to resume training from.")
     # logging
     parser.add_argument("--track_memory", type=float, default=None, help="Track memory usage during training.")
     parser.add_argument("--weight_distribution_log_steps", type=int, default=0, help="Log weight distribution every N steps. (set to 0 to disable)")
