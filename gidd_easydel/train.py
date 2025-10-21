@@ -18,7 +18,7 @@ from jax import numpy as jnp
 from transformers import AutoTokenizer
 from datasets import IterableDataset
 
-from .data import generate_rows_from_buckets
+from .data import generate_rows_from_buckets, packed_dataset
 from .diffusion_trainer import DiffusionTrainer, DiffusionConfig
 from .model import GiddForDiffusionLM, GiddConfig
 from .optimizer import lapropw
@@ -128,6 +128,7 @@ def train(args):
         micro_batch_size = total_batch_size
     assert total_batch_size % micro_batch_size == 0, "Total batch size must be divisible by micro batch size."
     grad_accum_steps = total_batch_size // micro_batch_size
+    per_device_batch_size = total_batch_size // grad_accum_steps
 
     num_layers = args.num_layers
     hidden_size = args.hidden_size
@@ -344,7 +345,7 @@ def train(args):
             # "resume_from": f"{args.resume_wandb_id}?_step={start_step}" if args.resume_wandb_id else None
         },
         num_train_epochs=1,
-        total_batch_size=total_batch_size // grad_accum_steps,  # easydel is weird like that
+        total_batch_size=per_device_batch_size,  # easydel is weird like that
         gradient_accumulation_steps=grad_accum_steps,
         do_last_save=True,
         max_sequence_length=max_length,
@@ -405,6 +406,15 @@ def train(args):
         seed=random.randint(0, 2**32 - 1),
         preload_factor=1,
     ))
+
+    train_dataset = packed_dataset(
+        train_dataset,
+        dataset_tokens_field="tokens",
+        max_sequence_length=max_length,
+        num_of_sequences=per_device_batch_size,
+        append_eos_token=True,
+        eos_token_id=tokenizer.eos_token_id,
+    )
 
     jax.experimental.multihost_utils.sync_global_devices("gidd_easydel:after_load_dataset")
     logger.info("Loaded dataset on all hosts")
