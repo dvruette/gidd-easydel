@@ -3,7 +3,6 @@ import dataclasses
 import time
 import typing as tp
 import warnings
-import random
 import pickle
 from concurrent.futures import ProcessPoolExecutor
 
@@ -77,7 +76,7 @@ class BucketRowSampler:
         if state is None and state_save_path is not None:
             state_path = ePath(state_save_path)
             if state_path.exists():
-                state = BucketRowSampler.load_state(state_path)
+                state = self.load_state(state_path)
                 logger.info(f"Loaded state from {state_save_path} at iteration {state.i}")
 
         if state is None:
@@ -89,7 +88,7 @@ class BucketRowSampler:
                 i=0,
                 rng_state=self.rng.bit_generator.state,
                 partitions=self.partitions.copy(),
-                buffers=self.buffers.copy(),
+                buffers={k: v.copy() for k, v in self.buffers.items()},
                 seed=seed,
             )
         else:
@@ -109,7 +108,6 @@ class BucketRowSampler:
     def save_state(self, path: str | ePathLike):
         path = ePath(path)
         self.state.rng_state = self.rng.bit_generator.state
-        self.state.partitions = self.partitions.copy()
         path.write_bytes(pickle.dumps(self.state))
 
     @classmethod
@@ -158,11 +156,14 @@ class BucketRowSampler:
         while self.state.i < i:
             self.next()
         return self.next()
+    
+    def __iter__(self):
+        i = 0
+        while True:
+            yield self[i]
+            i += 1
 
     def next(self):
-        if self.last_saved_time is None:
-            self.last_saved_time = time.time()
-
         bucket_idx = self._random_bucket()
         # next_file = self._next_file(bucket_idx)
         buffer = self.buffers.get(bucket_idx)
@@ -175,16 +176,23 @@ class BucketRowSampler:
 
         if buffer["idx"] >= len(buffer["values"]):
             self.partitions[bucket_idx] += 1
+
             next_file = self._next_file(bucket_idx)
             self.buffers[bucket_idx] = {
                 "file": next_file,
                 "idx": 0,
             }
             self.state.buffers[bucket_idx] = self.buffers[bucket_idx].copy()
+            self.state.partitions = self.partitions.copy()
             return self.next()
         buffer["idx"] += 1
         self.state.buffers[bucket_idx]["idx"] = buffer["idx"]
+        assert "values" not in self.state.buffers[bucket_idx], f"State buffer should not contain values ({bucket_idx=}, {self.state.i=})"
         self.state.i += 1
+
+        if self.last_saved_time is None:
+            self.last_saved_time = time.time()
+
         if (
             self.state_save_path is not None
             and (time.time() - self.last_saved_time) > self.state_save_interval
