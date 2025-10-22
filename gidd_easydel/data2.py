@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 
 @dataclasses.dataclass
-class BucketRowGeneratorState:
+class BucketRowSamplerState:
     rng_state: dict
     partitions: dict
     buffers: dict
@@ -45,14 +45,14 @@ def _load_partition(path, seed=0, storage_options=None):
     rng.shuffle(vals)
     return vals
 
-class BucketRowGenerator:
+class BucketRowSampler:
     def __init__(
         self,
         bucket_files: list[list[str]],
         storage_options=None,
         max_workers: tp.Literal["auto"] | int = "auto",
         preload_factor: int = 1,
-        state: BucketRowGeneratorState | None = None,
+        state: BucketRowSamplerState | None = None,
         state_save_interval: int = 60,  # save interval in seconds
         state_save_path: str | ePathLike | None = None,
         seed: int = 0,
@@ -69,7 +69,7 @@ class BucketRowGenerator:
         self.num_buckets = len(bucket_files)
         self.state_save_interval = state_save_interval
         self.state_save_path = state_save_path
-        self.last_saved_time = time.time()
+        self.last_saved_time = None
 
         if max_workers == "auto":
             max_workers = min(preload_factor * self.num_buckets, (os.cpu_count() or 1))
@@ -77,7 +77,7 @@ class BucketRowGenerator:
         if state is None and state_save_path is not None:
             state_path = ePath(state_save_path)
             if state_path.exists():
-                state = BucketRowGenerator.load_state(state_path)
+                state = BucketRowSampler.load_state(state_path)
                 logger.info(f"Loaded state from {state_save_path} at iteration {state.i}")
 
         if state is None:
@@ -85,7 +85,7 @@ class BucketRowGenerator:
             self.partitions = {i: 0 for i in range(self.num_buckets)}
             self.preload_partitions = self.partitions.copy()
             self.buffers = {i: {"file": self._next_file(i), "idx": 0} for i in range(self.num_buckets)}
-            self.state = BucketRowGeneratorState(
+            self.state = BucketRowSamplerState(
                 i=0,
                 rng_state=self.rng.bit_generator.state,
                 partitions=self.partitions.copy(),
@@ -113,7 +113,7 @@ class BucketRowGenerator:
         path.write_bytes(pickle.dumps(self.state))
 
     @classmethod
-    def load_state(cls, path: str | ePathLike) -> BucketRowGeneratorState:
+    def load_state(cls, path: str | ePathLike) -> BucketRowSamplerState:
         path = ePath(path)
         data = path.read_bytes()
         state = pickle.loads(data)
@@ -152,11 +152,17 @@ class BucketRowGenerator:
         if i < self.state.i:
             raise ValueError("Cannot go back to previous items in the iterator")
 
+        if self.state.i < i:
+            logger.info(f"Advancing from iteration {self.state.i} to {i}")
+
         while self.state.i < i:
             self.next()
         return self.next()
 
     def next(self):
+        if self.last_saved_time is None:
+            self.last_saved_time = time.time()
+
         bucket_idx = self._random_bucket()
         # next_file = self._next_file(bucket_idx)
         buffer = self.buffers.get(bucket_idx)
@@ -187,5 +193,4 @@ class BucketRowGenerator:
             self.last_saved_time = time.time()
             logger.info(f"State saved after {self.state.i} iterations")
         return {"tokens": buffer["values"][buffer["idx"] - 1]}
-
 
