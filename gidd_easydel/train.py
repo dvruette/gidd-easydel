@@ -9,6 +9,7 @@ from datetime import datetime
 import dask.dataframe as dd
 import jax
 import optax
+import orbax.checkpoint as ocp
 import chex
 import tqdm
 import wandb
@@ -18,7 +19,7 @@ from jax import numpy as jnp
 from transformers import AutoTokenizer
 from datasets import IterableDataset
 
-from .data import generate_rows_from_buckets, packed_dataset
+from .data2 import generate_packed_samples
 from .diffusion_trainer import DiffusionTrainer, DiffusionConfig
 from .model import GiddForDiffusionLM, GiddConfig
 from .optimizer import lapropw
@@ -128,7 +129,6 @@ def train(args):
         micro_batch_size = total_batch_size
     assert total_batch_size % micro_batch_size == 0, "Total batch size must be divisible by micro batch size."
     grad_accum_steps = total_batch_size // micro_batch_size
-    per_device_batch_size = total_batch_size // grad_accum_steps
 
     num_layers = args.num_layers
     hidden_size = args.hidden_size
@@ -345,7 +345,7 @@ def train(args):
             # "resume_from": f"{args.resume_wandb_id}?_step={start_step}" if args.resume_wandb_id else None
         },
         num_train_epochs=1,
-        total_batch_size=per_device_batch_size,  # easydel is weird like that
+        total_batch_size=micro_batch_size,  # easydel is weird like that
         gradient_accumulation_steps=grad_accum_steps,
         do_last_save=True,
         max_sequence_length=max_length,
@@ -400,21 +400,32 @@ def train(args):
 
     print(f"Found {len(bucket_paths)} buckets and {len(bucket_files)} files in {args.data_files}")
 
-    train_dataset = IterableDataset.from_generator(generate_rows_from_buckets, gen_kwargs=dict(
-        bucket_files=bucket_files,
-        storage_options=storage_options,
-        seed=random.randint(0, 2**32 - 1),
-        preload_factor=1,
-    ))
 
-    train_dataset = packed_dataset(
-        train_dataset,
-        dataset_tokens_field="tokens",
+    checkpoint_dir = str(arguments.get_path().resolve() / "orbax")
+    options = ocp.CheckpointManagerOptions(
+        enable_hns=True if "_hns" in checkpoint_dir else False,
+        create=True,
+    )
+    with ocp.CheckpointManager(
+        checkpoint_dir,
+        options=options,
+    ) as checkpoint_manager:
+        latest_step = checkpoint_manager.latest_step() or 0
+
+    train_dataset = IterableDataset.from_generator(generate_packed_samples, gen_kwargs=dict(
+        bucket_files=bucket_files,
+        seed=random.randint(0, 2**32 - 1),
+        storage_options=storage_options,
+        preload_factor=1,
+        tokens_field="tokens",
         max_sequence_length=max_length,
-        num_of_sequences=per_device_batch_size,
+        batch_size=micro_batch_size,
         append_eos_token=True,
         eos_token_id=tokenizer.eos_token_id,
-    )
+        state_save_interval=args.save_steps * micro_batch_size,
+        state_save_dir=os.path.join(args.save_directory, "dataset_states"),
+        skip_first_n_batches=latest_step * grad_accum_steps,
+    ))
 
     jax.experimental.multihost_utils.sync_global_devices("gidd_easydel:after_load_dataset")
     logger.info("Loaded dataset on all hosts")
