@@ -38,6 +38,8 @@ base_env = {
     "EASYDEL_PROFILING_DIR": os.getenv("EASYDEL_PROFILING_DIR", f"gs://gidd-checkpoints_{TPU_ZONE[:-2]}_hns/jax-trace"),  # Directory for EasyDeL profiling outputs.
     "EASYDEL_AUTO": os.getenv("EASYDEL_AUTO", "1"),  # Enables EasyDeL's automatic sharding configuration.
     "LIBTPU_INIT_ARGS": "--xla_tpu_scoped_vmem_limit_kib=98304" if "v6e" in TPU_VERSION else "",
+    "JAX_LOG_COMPILES": os.getenv("JAX_LOG_COMPILES", "0"),
+    "JAX_EXPLAIN_CACHE_MISSES": os.getenv("JAX_EXPLAIN_CACHE_MISSES", "0"),
     "HF_TOKEN": os.getenv("HF_TOKEN_FOR_EASYDEL", ""),  # Hugging Face token.
     "HF_DATASETS_CACHE": "/dev/shm/huggingface-dataset",  # RAM-disk for dataset cache.
     "HF_HOME": "/dev/shm/huggingface",  # RAM-disk for model cache.
