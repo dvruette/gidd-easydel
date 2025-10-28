@@ -422,7 +422,7 @@ def train(args):
         batch_size=micro_batch_size,
         append_eos_token=True,
         eos_token_id=tokenizer.eos_token_id,
-        state_save_interval=args.save_steps * micro_batch_size,
+        state_save_interval=args.save_steps * micro_batch_size * grad_accum_steps,
         state_save_dir=os.path.join(args.save_directory, "dataset_states"),
         skip_first_n_batches=latest_step * grad_accum_steps,
     ))
