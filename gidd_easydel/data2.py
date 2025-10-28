@@ -60,7 +60,7 @@ class StatefulSampler(ABC, tp.Generic[S]):
         closest_state_file = None
         closest_step = -1
         if state_path.exists():
-            state_files: list[ePathLike] = sorted(state_path.glob("step_*.pkl"))
+            state_files: list[ePathLike] = sorted(state_path.glob("step_*.pkl"), key=lambda p: p.stem())
             for sf in state_files:
                 step_str = sf.stem().split("_")[1]
                 step = int(step_str)
@@ -68,7 +68,7 @@ class StatefulSampler(ABC, tp.Generic[S]):
                     closest_step = step
                     closest_state_file = sf
         if closest_state_file is None:
-            logger.warning(f"No suitable state found in {self.state_save_dir} to load from. Initializing new state.")
+            logger.warning(f"No suitable state found in {self.state_save_dir} to load from for target step {target_i}. Initializing new state.")
             self.init_state()
         else:
             logger.info(f"Loading state from {closest_state_file} for target iteration {target_i}.")
