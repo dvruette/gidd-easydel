@@ -348,36 +348,39 @@ class PackedRowSampler(StatefulSampler[PackedRowSamplerState]):
         self.shuffle_buffer = self.state.shuffle_buffer
 
     def next(self):
-        while len(self.buffer) < self.seq_length:
-            tokens = self.dataset[self.state.inner_i][self.tokens_field]
-            self.state.inner_i += 1
+        while True:
+            while len(self.buffer) < self.seq_length:
+                tokens = self.dataset[self.state.inner_i][self.tokens_field]
+                self.state.inner_i += 1
 
-            if not isinstance(tokens, np.ndarray):
-                assert isinstance(tokens, (jnp.ndarray, list)), (
-                    f"Expected tokens to be a list or np.ndarray or jnp.ndarray, got {type(tokens)}"
-                )
-                tokens = np.array(tokens, dtype=np.int32)
+                if not isinstance(tokens, np.ndarray):
+                    assert isinstance(tokens, (jnp.ndarray, list)), (
+                        f"Expected tokens to be a list or np.ndarray or jnp.ndarray, got {type(tokens)}"
+                    )
+                    tokens = np.array(tokens, dtype=np.int32)
+                else:
+                    tokens = tokens.astype(np.int32)
+
+                # append EOS token
+                self.buffer = np.concatenate([self.buffer, tokens], axis=0)
+                if self.append_eos_token and len(self.buffer) % self.seq_length != 0:
+                    self.buffer = np.concatenate([self.buffer, self.eos_token], axis=0)
+
+            # Pop the first seq_length tokens to form a complete example
+            example = {"input_ids": jnp.array(self.buffer[:self.seq_length])}
+            self.buffer = self.buffer[self.seq_length:]
+            if self.shuffle:
+                if len(self.shuffle_buffer) < self.shuffle_buffer_size:
+                    self.shuffle_buffer.append(example)
+                    continue
+                else:
+                    idx = self.rng.integers(self.shuffle_buffer_size)
+                    output = self.shuffle_buffer[idx]
+                    self.shuffle_buffer[idx] = example
+                    break
             else:
-                tokens = tokens.astype(np.int32)
-
-            # append EOS token
-            self.buffer = np.concatenate([self.buffer, tokens], axis=0)
-            if self.append_eos_token and len(self.buffer) % self.seq_length != 0:
-                self.buffer = np.concatenate([self.buffer, self.eos_token], axis=0)
-
-        # Pop the first seq_length tokens to form a complete example
-        example = {"input_ids": jnp.array(self.buffer[:self.seq_length])}
-        self.buffer = self.buffer[self.seq_length:]
-        if self.shuffle:
-            if len(self.shuffle_buffer) < self.shuffle_buffer_size:
-                self.shuffle_buffer.append(example)
-                return self.next()
-            else:
-                idx = self.rng.integers(self.shuffle_buffer_size)
-                output = self.shuffle_buffer[idx]
-                self.shuffle_buffer[idx] = example
-        else:
-            output = example
+                output = example
+                break
 
         self.state.buffer = self.buffer
         self.state.i += 1
