@@ -59,7 +59,7 @@ class StatefulSampler(ABC, tp.Generic[S]):
 
         closest_state_file = None
         closest_step = -1
-        if state_path.exists():
+        if state_path.exists() or state_path.is_dir():
             state_files: list[ePathLike] = sorted(state_path.glob("step_*.pkl"), key=lambda p: p.stem())
             for sf in state_files:
                 step_str = sf.stem().split("_")[1]

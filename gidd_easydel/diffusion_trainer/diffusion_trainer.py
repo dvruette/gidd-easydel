@@ -12,6 +12,7 @@ from easydel.infra.base_state import EasyDeLState
 from easydel.utils.helpers import get_logger
 from easydel.trainers.trainer import Trainer
 from easydel.trainers.trainer_protocol import TrainerConfigureFunctionOutput
+from easydel.utils.compiling_utils import ejit
 
 from ._fn import training_step
 from .loss import GiddLoss
@@ -266,7 +267,7 @@ class DiffusionTrainer(Trainer):
         )
         static_argnames = (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)
 
-        sharded_training_step_function = jax.jit(
+        sharded_training_step_function = ejit(
             training_step,
             in_shardings=(self.state_shardings, empty_sharding),
             out_shardings=(self.state_shardings, empty_sharding),
@@ -276,7 +277,7 @@ class DiffusionTrainer(Trainer):
 
         self._eval_shared_fn_static_args = self._train_shared_fn_static_args[:-1] + (False,)  # is_train=False
 
-        sharded_evaluation_step_function = jax.jit(
+        sharded_evaluation_step_function = ejit(
             training_step,
             in_shardings=(self.state_shardings, empty_sharding),
             out_shardings=empty_sharding,
