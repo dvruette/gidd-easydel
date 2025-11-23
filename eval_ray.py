@@ -81,13 +81,12 @@ def main():
         pprint(ARGS)
         cli_evaluate(ARGS)
     except Exception as e:
-        print(f"An error occurred during training: {e}")
+        print(f"An error occurred during eval: {e}")
         raise
     else:
-        print("Successfully completed training")
+        print("Successfully completed eval")
 
     print("Returning from main()")
-    return "hello"
 
 
 def submit_to_host(remote_fn, host_info, env):
@@ -233,7 +232,6 @@ def run_on_multislice_resumable(
         try:
             calls, pgs = submit_to_multislice(remote_fn, tpu_type, num_slices)
             results = ray.get(calls)
-            logger.info(f"Results: {results}")
             logger.info("Successfully completed multislice submission")
             done = True
             break
