@@ -206,10 +206,11 @@ class HybridMixingDistribution(MixingDistribution):
         scale: float = 1.0,
         shift: float = 0.0,
         dtype: jnp.dtype = None,
+        prior_distribution: Priors | chex.Array = Priors.MASKED,
     ):
         super().__init__(
             vocab_size=vocab_size,
-            prior_distribution=Priors.MASKED,
+            prior_distribution=prior_distribution,
             mask_token_id=mask_token_id,
         )
         self.scale = scale
@@ -494,6 +495,7 @@ def create_mixing_schedule(
                 scale=hybrid_scale,
                 shift=hybrid_shift,
                 dtype=dtype,
+                prior_distribution=prior_distribution,
             )
         else:
             raise ValueError(f"Unknown MixingDistribution type: {distribution}")
