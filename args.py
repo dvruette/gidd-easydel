@@ -1,19 +1,11 @@
 import sys
 import argparse
 
-
-def parse_args(
+def create_parser(
     default_save_directory="outputs/diffusion_trainer",
     default_wandb_entity="dvruette",
     default_data_files="/local/home/dvruette/nemotron_tokenized/",
 ):
-    command = sys.argv
-    if "--resume_wandb_id" in command:
-        # remove the wandb_id and subsequent argument from the command
-        idx = command.index("--resume_wandb_id")
-        command = command[:idx] + command[idx+2:]
-    command = " ".join(command)
-
     parser = argparse.ArgumentParser(description="Run the diffusion training process.")
     # architecture
     parser.add_argument("--max_seq_len", type=int, default=512, help="Maximum sequence length for the model.")
@@ -85,6 +77,28 @@ def parse_args(
     parser.add_argument("--track_memory", type=float, default=None, help="Track memory usage during training.")
     parser.add_argument("--weight_distribution_log_steps", type=int, default=0, help="Log weight distribution every N steps. (set to 0 to disable)")
     parser.add_argument("--log_grad_norms", action=argparse.BooleanOptionalAction, default=False, help="Log gradient norms during training.")
+    
+    return parser
+
+
+def parse_args(
+    default_save_directory="outputs/diffusion_trainer",
+    default_wandb_entity="dvruette",
+    default_data_files="/local/home/dvruette/nemotron_tokenized/",
+):
+    command = sys.argv
+    if "--resume_wandb_id" in command:
+        # remove the wandb_id and subsequent argument from the command
+        idx = command.index("--resume_wandb_id")
+        command = command[:idx] + command[idx+2:]
+    command = " ".join(command)
+
+    parser = create_parser(
+        default_save_directory=default_save_directory,
+        default_wandb_entity=default_wandb_entity,
+        default_data_files=default_data_files,
+    )
+
     args = parser.parse_args()
     args.command = command
     return args
