@@ -394,6 +394,14 @@ class MixingSchedule(MixingRate, MixingDistribution):
     def log_snr_from_alpha(self, alpha: chex.Array) -> chex.Array:
         return self._rate.log_snr_from_alpha(alpha)
 
+    @property
+    def min_log_snr(self) -> float:
+        return self._rate.min_log_snr
+
+    @property
+    def max_log_snr(self) -> float:
+        return self._rate.max_log_snr
+
     """
     MixingDistribution methods
     """

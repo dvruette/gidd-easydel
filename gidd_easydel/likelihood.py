@@ -63,20 +63,25 @@ def likelihood_step(
     labels,
     attn_mask,
     noise_mask,
+    completion_mask,
     log_snr,
     key,
     vocab_size=131072,
     mask_token_id=3,
     logit_partition_spec=None,
     token_partition_spec=None,
+    use_effective_snr=False,
 ):
+    min_log_snr = mixing_schedule.min_log_snr
+    max_log_snr = mixing_schedule.max_log_snr
     input_ids = mixing_schedule.sample_marginals(key, log_snr, labels)
     input_ids = jnp.where(noise_mask, input_ids, labels)
-    actual_alpha = ((input_ids == labels) * noise_mask).sum(-1) / noise_mask.sum(-1)
-    actual_log_snr = jnp.log(actual_alpha / (1 - actual_alpha + 1e-12) + 1e-12)
-
-    log_snrs = actual_log_snr
-    # log_snrs = (log_snr * jnp.ones((labels.shape[0],), dtype=jnp.float32))
+    effective_alpha = ((input_ids == labels) * completion_mask).sum(-1) / completion_mask.sum(-1)
+    effective_log_snr = jnp.log(effective_alpha / (1 - effective_alpha + 1e-12) + 1e-12).clip(min_log_snr, max_log_snr)
+    if use_effective_snr:
+        log_snrs = effective_log_snr
+    else:
+        log_snrs = (log_snr * jnp.ones((labels.shape[0],), dtype=jnp.float32))
 
     outputs = module(
         input_ids=input_ids,
@@ -99,7 +104,16 @@ def likelihood_step(
     return elbos, logits, input_ids
 
 
-likelihood_step_jit = jax.jit(likelihood_step, static_argnames=("vocab_size", "mask_token_id", "logit_partition_spec", "token_partition_spec"))
+likelihood_step_jit = jax.jit(
+    likelihood_step,
+    static_argnames=(
+        "vocab_size",
+        "mask_token_id",
+        "logit_partition_spec",
+        "token_partition_spec",
+        "use_effective_snr",
+    ),
+)
 
 
 def likelihood(
@@ -115,6 +129,7 @@ def likelihood(
     noise_schedule: Literal["linear", "cosine"] = "linear",
     min_log_snr: float = -9.0,
     max_log_snr: float = 9.0,
+    use_effective_snr: bool = True,
     seed=0,
     show_progress=True,
     step_callback=None,
@@ -202,12 +217,14 @@ def likelihood(
                 input_ids,
                 attn_mask,
                 noise_mask,
+                completion_mask,
                 log_snrs[i],
                 key_i,
                 vocab_size,
                 tokenizer.mask_token_id,
                 logit_partition_spec=logit_partition_spec,
                 token_partition_spec=token_partition_spec,
+                use_effective_snr=use_effective_snr,
             )
             if step_callback is not None:
                 step_callback(
@@ -233,4 +250,6 @@ def likelihood(
         "total_nll": total_nll,
         "avg_nll": avg_nll,
         "ppl": ppl,
+        "completion_mask": completion_mask,
+        "input_ids": input_ids,
     }
