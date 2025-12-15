@@ -98,6 +98,8 @@ Depending on which tasks you would like to run (training or evaluation), please 
 #### Data
 The exact data split that was used for training, already pre-tokenized and pre-shuffled, is available here: https://huggingface.co/datasets/dvruette/gidd-nemotron-cc-pretok
 
+Make sure to download this data to your local storage/your GCS bucket and pass the path containing the dataset via the `DATA_FILES` environment variable.
+
 #### GPU
 For running the training code on GPU, you can use the `main_gpu.py` script.
 An example command to launch a training run on GPU is as follows:
