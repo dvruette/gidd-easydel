@@ -100,7 +100,7 @@ For running the training code on GPU, you can use the `main_gpu.py` script.
 An example command to launch a training run on GPU is as follows:
 
 ```bash
-# recommended for local runs: skip safety check for whether data/checkpoint buckets are in the same region as the TPU
+# recommended for local runs only: skip safety check for whether data/checkpoint buckets are in the same region as the TPU
 export SKIP_GS_LOCATION_CHECK=1
 # configure data and checkpoint paths
 export DATA_FILES=/local/path/to/data/files/
