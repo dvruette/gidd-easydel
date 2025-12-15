@@ -95,6 +95,9 @@ Depending on which tasks you would like to run (training or evaluation), please 
 
 ## Training
 
+#### Data
+The exact data split that was used for training, already pre-tokenized and pre-shuffled, is available here: https://huggingface.co/datasets/dvruette/gidd-nemotron-cc-pretok
+
 #### GPU
 For running the training code on GPU, you can use the `main_gpu.py` script.
 An example command to launch a training run on GPU is as follows:
