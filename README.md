@@ -19,7 +19,7 @@ Below we plot the compute-bound and token-bound scaling laws for all investigate
 
 [![Scaling laws of discrete diffusion language models](thumbnail.png)](https://arxiv.org/abs/2512.10858)
 
-| Model | Size | Train. PPL | Diffusion type | HuggingFace Link |
+| Model | Size | Train. PPL | Diffusion type | HuggingFace link |
 |:------|-----:|-----------:|:---------------|:-----------------|
 | `gidd-unif-10b` | 10B | 9.15 | uniform | https://huggingface.co/dvruette/gidd-unif-10b |
 | `gidd-mask-3b` | 3B | 11.3 | masked | https://huggingface.co/dvruette/gidd-mask-3b |
