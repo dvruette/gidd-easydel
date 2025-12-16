@@ -1,2 +1,8 @@
+easydel @ git+https://github.com/dvruette/EasyDeL.git@c78c2431ef4beac5072b526e61552c4322a9ce2e
+eformer @ git+https://github.com/dvruette/eformer.git@667be7d6a74a0065b01792ba7e65563052cdd1ad
+orbax==0.1.9
+orbax-checkpoint @ git+https://github.com/dvruette/orbax.git@4e1eb309e3c9afdd87660e540c61fbdd55114c26#subdirectory=checkpoint/orbax
+
 tensorflow
 dask
+jax==0.7.1
