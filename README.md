@@ -19,7 +19,7 @@ Below we plot the compute-bound and token-bound scaling laws for all investigate
 
 [![Scaling laws of discrete diffusion language models](thumbnail.png)](https://arxiv.org/abs/2512.10858)
 
-| Model | Size | Train. PPL | Diffusion type | HuggingFace Link |
+| Model | Size | Train. PPL | Diffusion type | HuggingFace link |
 |:------|-----:|-----------:|:---------------|:-----------------|
 | `gidd-unif-10b` | 10B | 9.15 | uniform | https://huggingface.co/dvruette/gidd-unif-10b |
 | `gidd-mask-3b` | 3B | 11.3 | masked | https://huggingface.co/dvruette/gidd-mask-3b |
@@ -34,7 +34,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model_name = "dvruette/gidd-10b-unif"
+model_name = "dvruette/gidd-unif-10b"
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True, torch_dtype=torch.bfloat16)
@@ -94,6 +94,11 @@ Depending on which tasks you would like to run (training or evaluation), please 
 - dvruette/lm-evaluation-harness (for evaluation): https://github.com/dvruette/lm-evaluation-harness/tree/gidd-v2
 
 ## Training
+
+#### Data
+The exact data split that was used for training, already pre-tokenized and pre-shuffled, is available here: https://huggingface.co/datasets/dvruette/gidd-nemotron-cc-pretok
+
+Make sure to download this data to your local storage/your GCS bucket and pass the path containing the dataset via the `DATA_FILES` environment variable.
 
 #### GPU
 For running the training code on GPU, you can use the `main_gpu.py` script.
