@@ -34,7 +34,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model_name = "dvruette/gidd-10b-unif"
+model_name = "dvruette/gidd-unif-10b"
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True, torch_dtype=torch.bfloat16)
