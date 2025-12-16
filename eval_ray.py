@@ -43,6 +43,7 @@ base_env = {
     "HF_DATASETS_CACHE": "/dev/shm/huggingface-dataset",  # RAM-disk for dataset cache.
     "HF_HOME": "/dev/shm/huggingface",  # RAM-disk for model cache.
     "HF_DATASETS_OFFLINE": "0",  # Prevent crash if HF is down
+    "HF_ALLOW_CODE_EVAL": os.getenv("HF_ALLOW_CODE_EVAL", "1"),
     "TRANSFORMERS_OFFLINE": "0",  # Need for tokenizer
     "WANDB_API_KEY": WANDB_API_KEY,  # W&B API key.
     "TPU_NAME": os.getenv("TPU_NAME", ""),

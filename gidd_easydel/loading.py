@@ -24,6 +24,7 @@ def load_checkpoint(
     sharding_axis_dims: tuple[int, int, int, int, int] = (1, -1, 1, 1, 1),
     dtype: str = "bf16",
     attn_mechanism: str = "vanilla",
+    precision: jax.lax.Precision = jax.lax.Precision.HIGH,
 ):
     dtype = {
         "fp32": jnp.float32,
@@ -65,7 +66,7 @@ def load_checkpoint(
         ),
         dtype=dtype,
         param_dtype=dtype,
-        precision=jax.lax.Precision.HIGH,
+        precision=precision,
         rngs=ed.Rngs(0),
     ).shard_model()
     model_state = model.to_state()
